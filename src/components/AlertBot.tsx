@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Mail, Calendar, AlertTriangle, Users, Pause, Play, Volume2, VolumeX } from 'lucide-react';
+import { Bell, Mail, Calendar, AlertTriangle, Users, Pause, Play } from 'lucide-react';
 
 interface Alert {
   id: string;
@@ -17,14 +17,6 @@ interface Alert {
 interface DisplayAlert extends Alert {
   displayedTitle: string;
   displayedMessage: string;
-  isTyping: boolean;
-}
-
-interface MovieAlert {
-  id: string;
-  text: string;
-  priority: 'high' | 'medium' | 'low';
-  displayedText: string;
   isTyping: boolean;
 }
 
@@ -70,49 +62,8 @@ const mockAlerts: Alert[] = [
 const AlertBot: React.FC = () => {
   const [currentAlertIndex, setCurrentAlertIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
   const [displayedAlerts, setDisplayedAlerts] = useState<DisplayAlert[]>([]);
-  const [movieAlerts, setMovieAlerts] = useState<MovieAlert[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const speechSynthesisRef = useRef<SpeechSynthesis | null>(null);
-
-  // Initialize speech synthesis
-  useEffect(() => {
-    if ('speechSynthesis' in window) {
-      speechSynthesisRef.current = window.speechSynthesis;
-    }
-  }, []);
-
-  // Play tick sound function
-  const playTickSound = () => {
-    if (!isVoiceEnabled) {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.1);
-    }
-  };
-
-  // Text-to-speech function
-  const speakText = (text: string) => {
-    if (isVoiceEnabled && speechSynthesisRef.current) {
-      speechSynthesisRef.current.cancel(); // Cancel any ongoing speech
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      utterance.volume = 0.8;
-      speechSynthesisRef.current.speak(utterance);
-    }
-  };
 
   const getAlertIcon = (type: string) => {
     switch (type) {
@@ -144,18 +95,18 @@ const AlertBot: React.FC = () => {
     }
   };
 
-  const getAlertBubbleColor = (type: string) => {
+  const getAlertGlow = (type: string) => {
     switch (type) {
       case 'email':
-        return 'bg-blue-500';
+        return 'shadow-2xl shadow-alert-email/50 border-alert-email/20';
       case 'servicenow':
-        return 'bg-orange-500';
+        return 'shadow-2xl shadow-alert-servicenow/50 border-alert-servicenow/20';
       case 'incident':
-        return 'bg-red-500';
+        return 'shadow-2xl shadow-alert-incident/50 border-alert-incident/20';
       case 'meeting':
-        return 'bg-green-500';
+        return 'shadow-2xl shadow-alert-meeting/50 border-alert-meeting/20';
       default:
-        return 'bg-gray-500';
+        return 'shadow-2xl shadow-gray-500/50 border-gray-500/20';
     }
   };
 
@@ -178,25 +129,9 @@ const AlertBot: React.FC = () => {
     // Add alert to top of list immediately
     setDisplayedAlerts(prev => [displayAlert, ...prev]);
 
-    // Create movie alert
-    const fullText = `${alert.title}. ${alert.message}`;
-    const movieAlert: MovieAlert = {
-      id: alert.id,
-      text: fullText,
-      priority: alert.priority,
-      displayedText: '',
-      isTyping: true
-    };
-
-    // Add movie alert to list
-    setMovieAlerts(prev => [...prev, movieAlert]);
-
     const typeNextWord = () => {
       if (wordIndex < allWords.length) {
         const word = allWords[wordIndex];
-        
-        // Play tick sound when voice is muted
-        playTickSound();
         
         if (wordIndex < titleWords.length) {
           currentTitle += (currentTitle ? ' ' : '') + word;
@@ -204,7 +139,7 @@ const AlertBot: React.FC = () => {
           currentMessage += (currentMessage ? ' ' : '') + word;
         }
 
-        // Update the chat alert
+        // Update the alert in the list
         setDisplayedAlerts(prev => 
           prev.map((item, index) => 
             index === 0 
@@ -213,16 +148,6 @@ const AlertBot: React.FC = () => {
                   displayedTitle: currentTitle,
                   displayedMessage: currentMessage
                 }
-              : item
-          )
-        );
-
-        // Update the movie alert
-        const displayedMovieText = allWords.slice(0, wordIndex + 1).join(' ');
-        setMovieAlerts(prev => 
-          prev.map(item => 
-            item.id === alert.id 
-              ? { ...item, displayedText: displayedMovieText }
               : item
           )
         );
@@ -238,18 +163,6 @@ const AlertBot: React.FC = () => {
               : item
           )
         );
-
-        setMovieAlerts(prev => 
-          prev.map(item => 
-            item.id === alert.id 
-              ? { ...item, isTyping: false }
-              : item
-          )
-        );
-        
-        // Speak the complete alert text
-        speakText(`${alert.title}. ${alert.message}`);
-        
         setTimeout(onComplete, 800); // Pause before next alert
       }
     };
@@ -259,16 +172,6 @@ const AlertBot: React.FC = () => {
 
   const togglePlayPause = () => {
     setIsPlaying(!isPlaying);
-    if (speechSynthesisRef.current) {
-      speechSynthesisRef.current.cancel();
-    }
-  };
-
-  const toggleVoice = () => {
-    setIsVoiceEnabled(!isVoiceEnabled);
-    if (speechSynthesisRef.current) {
-      speechSynthesisRef.current.cancel();
-    }
   };
 
   useEffect(() => {
@@ -294,39 +197,6 @@ const AlertBot: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
-      {/* Movie Credits Overlay */}
-      <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 pointer-events-none">
-        <div className="w-full max-w-4xl px-8">
-          <div className="space-y-8 animate-movie-scroll">
-            {movieAlerts.map((alert, index) => (
-              <div
-                key={alert.id}
-                className="text-center transform transition-all duration-1000"
-                style={{
-                  transform: `translateY(${(movieAlerts.length - index - 1) * 80}px)`,
-                  opacity: 1 - (index * 0.15)
-                }}
-              >
-                <div 
-                  className={`text-2xl md:text-4xl font-bold tracking-wide leading-relaxed ${
-                    alert.priority === 'high' ? 'text-red-400' : 'text-white'
-                  } drop-shadow-2xl`}
-                  style={{
-                    fontFamily: 'serif',
-                    textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
-                  }}
-                >
-                  {alert.displayedText}
-                  {alert.isTyping && (
-                    <span className="inline-block w-1 h-8 bg-white ml-2 animate-pulse" />
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center space-x-3">
@@ -349,40 +219,17 @@ const AlertBot: React.FC = () => {
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             <span>{isPlaying ? 'Pause' : 'Resume'}</span>
           </Button>
-          
-          <Button 
-            variant="outline" 
-            onClick={toggleVoice}
-            className={`flex items-center space-x-2 ${isVoiceEnabled ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}
-          >
-            {isVoiceEnabled ? <Volume2 className="w-4 h-4 text-green-600" /> : <VolumeX className="w-4 h-4 text-red-600" />}
-            <span className={isVoiceEnabled ? 'text-green-600' : 'text-red-600'}>
-              {isVoiceEnabled ? 'Voice On' : 'Voice Off'}
-            </span>
-          </Button>
         </div>
       </div>
 
-      {/* WhatsApp-like Chat Container */}
-      <div className="h-96 overflow-hidden bg-gradient-to-b from-green-50 to-green-100 border border-green-200 rounded-lg relative">
-        {/* WhatsApp-like pattern background */}
-        <div className="absolute inset-0 opacity-10">
-          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="whatsapp-pattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
-                <circle cx="20" cy="20" r="1" fill="#128C7E" opacity="0.3"/>
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#whatsapp-pattern)" />
-          </svg>
-        </div>
-        
-        <div className="p-4 border-b bg-green-600 text-white relative z-10">
-          <h2 className="font-semibold flex items-center space-x-2">
+      {/* Alert Chat Container */}
+      <Card className="h-96 overflow-hidden bg-gradient-to-b from-gray-900 via-gray-800 to-black border-2 border-gray-700">
+        <div className="p-4 border-b bg-gradient-to-r from-gray-800 to-gray-900 border-gray-700">
+          <h2 className="font-semibold text-white flex items-center space-x-2">
             <Users className="w-5 h-5" />
             <span>Mission Control</span>
             {isPlaying && (
-              <Badge variant="secondary" className="animate-pulse bg-green-500 text-white border-0">
+              <Badge variant="secondary" className="animate-pulse-glow bg-green-600 text-white">
                 ● LIVE
               </Badge>
             )}
@@ -391,11 +238,11 @@ const AlertBot: React.FC = () => {
         
         <div 
           ref={chatContainerRef}
-          className="h-full overflow-y-auto p-4 space-y-4 relative z-10"
+          className="h-full overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-900 to-black"
         >
           {displayedAlerts.length === 0 && !isPlaying && (
-            <div className="text-center text-gray-500 mt-20">
-              <Bell className="w-12 h-12 mx-auto mb-4 text-gray-400 animate-pulse" />
+            <div className="text-center text-gray-400 mt-20">
+              <Bell className="w-12 h-12 mx-auto mb-4 text-gray-600 animate-pulse" />
               <p className="text-lg">Initializing alert system...</p>
             </div>
           )}
@@ -403,67 +250,64 @@ const AlertBot: React.FC = () => {
           {displayedAlerts.map((alert, index) => (
             <div
               key={`${alert.id}-${index}`}
-              className={`flex justify-end mb-3 transform transition-all duration-500 ${
-                index === 0 ? 'animate-slide-in scale-100' : 'scale-95'
+              className={`flex items-start space-x-3 transform transition-all duration-500 ${
+                index === 0 ? 'animate-slide-in scale-105' : 'scale-100'
               }`}
               style={{
+                transform: `translateY(${index * 2}px)`,
                 opacity: 1 - (index * 0.1)
               }}
             >
-              <div className="max-w-xs lg:max-w-md">
-                <div className={`${getAlertBubbleColor(alert.type)} text-white p-3 rounded-lg rounded-br-none shadow-lg relative`}>
-                  <div className="flex items-center space-x-2 mb-2">
-                    <div className="p-1 bg-white/20 rounded-full">
-                      {getAlertIcon(alert.type)}
-                    </div>
-                    <h3 className="font-bold text-sm">
+              <div className={`p-3 rounded-full ${getAlertColor(alert.type)} flex-shrink-0 animate-pulse`}>
+                {getAlertIcon(alert.type)}
+              </div>
+              
+              <div className="flex-1">
+                <Card className={`p-4 border-2 ${getAlertGlow(alert.type)} bg-gray-800/90 backdrop-blur-sm`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-bold text-white text-lg">
                       {alert.displayedTitle}
                       {alert.isTyping && index === 0 && (
-                        <span className="inline-block w-1 h-3 bg-white ml-1 animate-pulse" />
+                        <span className="inline-block w-2 h-5 bg-white ml-1 animate-pulse" />
                       )}
                     </h3>
+                    <div className="flex items-center space-x-2">
+                      <Badge 
+                        variant={alert.priority === 'high' ? 'destructive' : 'secondary'}
+                        className="animate-fade-in"
+                      >
+                        {alert.priority.toUpperCase()}
+                      </Badge>
+                      {alert.time && (
+                        <Badge variant="outline" className="text-white border-white/30">
+                          {alert.time}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  
-                  <p className="text-sm mb-2 leading-relaxed">
+                  <p className="text-gray-300 text-sm leading-relaxed">
                     {alert.displayedMessage}
                     {alert.isTyping && index === 0 && alert.displayedTitle === alert.title && (
-                      <span className="inline-block w-1 h-3 bg-white ml-1 animate-pulse" />
+                      <span className="inline-block w-2 h-4 bg-gray-300 ml-1 animate-pulse" />
                     )}
                   </p>
-                  
-                  <div className="flex items-center justify-between text-xs opacity-80">
-                    <Badge 
-                      variant="secondary"
-                      className={`text-xs px-2 py-1 ${
-                        alert.priority === 'high' 
-                          ? 'bg-red-100 text-red-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}
-                    >
-                      {alert.priority.toUpperCase()}
-                    </Badge>
-                    <span className="text-xs">
-                      {alert.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  
-                  {/* WhatsApp-like tail */}
-                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-inherit transform rotate-45"></div>
-                </div>
+                </Card>
               </div>
             </div>
           ))}
           
           {!isPlaying && displayedAlerts.length > 0 && (
             <div className="text-center mt-8 p-4">
-              <div className="inline-flex items-center space-x-2 text-green-600 font-bold text-lg">
-                <div className="w-3 h-3 bg-green-600 rounded-full animate-pulse"></div>
-                <span>Mission Briefing Complete!</span>
+              <div className="inline-flex items-center space-x-2 text-green-400 font-bold text-lg">
+                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
+                  Mission Briefing Complete!
+                </span>
               </div>
             </div>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
