@@ -54,9 +54,10 @@ const mockAlerts: Alert[] = [
 ];
 
 const AlertBot: React.FC = () => {
-  const [currentAlertIndex, setCurrentAlertIndex] = useState(-1);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentAlertIndex, setCurrentAlertIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
+  const [displayedAlerts, setDisplayedAlerts] = useState<Alert[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const getAlertIcon = (type: string) => {
@@ -99,29 +100,26 @@ const AlertBot: React.FC = () => {
     speechSynthesis.speak(utterance);
   };
 
-  const startAlerts = () => {
-    setIsPlaying(true);
-    setCurrentAlertIndex(0);
-  };
-
   const stopAlerts = () => {
     setIsPlaying(false);
-    setCurrentAlertIndex(-1);
     speechSynthesis.cancel();
   };
 
   useEffect(() => {
-    if (isPlaying && currentAlertIndex >= 0 && currentAlertIndex < mockAlerts.length) {
+    if (isPlaying && currentAlertIndex < mockAlerts.length) {
       const alert = mockAlerts[currentAlertIndex];
       const fullMessage = `${alert.title}. ${alert.message}`;
+      
+      // Add new alert to the beginning of the array (newest on top)
+      setDisplayedAlerts(prev => [alert, ...prev]);
       
       // Speak the alert
       speakText(fullMessage);
       
-      // Auto-scroll to the latest alert
+      // Auto-scroll to top to show the newest alert
       setTimeout(() => {
         if (chatContainerRef.current) {
-          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+          chatContainerRef.current.scrollTop = 0;
         }
       }, 100);
 
@@ -152,14 +150,6 @@ const AlertBot: React.FC = () => {
         
         {/* Controls */}
         <div className="flex items-center justify-center space-x-4">
-          <Button 
-            onClick={startAlerts} 
-            disabled={isPlaying}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {isPlaying ? 'Playing Alerts...' : 'Start Daily Alerts'}
-          </Button>
-          
           <Button 
             variant="outline" 
             onClick={stopAlerts}
@@ -198,18 +188,18 @@ const AlertBot: React.FC = () => {
           ref={chatContainerRef}
           className="h-full overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white"
         >
-          {currentAlertIndex === -1 && !isPlaying && (
+          {displayedAlerts.length === 0 && !isPlaying && (
             <div className="text-center text-gray-500 mt-20">
               <Bell className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>Click "Start Daily Alerts" to begin your briefing</p>
+              <p>Your daily briefing will start automatically</p>
             </div>
           )}
           
-          {mockAlerts.slice(0, currentAlertIndex + 1).map((alert, index) => (
+          {displayedAlerts.map((alert, index) => (
             <div
-              key={alert.id}
+              key={`${alert.id}-${index}`}
               className={`flex items-start space-x-3 animate-fade-in ${
-                index === currentAlertIndex ? 'animate-slide-in' : ''
+                index === 0 ? 'animate-slide-in' : ''
               }`}
             >
               <div className={`p-2 rounded-full ${getAlertColor(alert.type)} flex-shrink-0`}>
@@ -237,7 +227,7 @@ const AlertBot: React.FC = () => {
             </div>
           ))}
           
-          {isPlaying && currentAlertIndex >= mockAlerts.length - 1 && (
+          {!isPlaying && displayedAlerts.length > 0 && (
             <div className="text-center mt-8 p-4">
               <div className="inline-flex items-center space-x-2 text-green-600 font-medium">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>

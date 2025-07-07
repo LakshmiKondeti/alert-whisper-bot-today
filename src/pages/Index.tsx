@@ -1,28 +1,9 @@
 
-import React, { useState } from 'react';
-import LoginForm from '@/components/LoginForm';
+import React from 'react';
 import AlertBot from '@/components/AlertBot';
-import { Button } from '@/components/ui/button';
-import { LogOut, User } from 'lucide-react';
+import { User } from 'lucide-react';
 
 const Index = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState('');
-
-  const handleLogin = (username: string) => {
-    setCurrentUser(username);
-    setIsLoggedIn(true);
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setCurrentUser('');
-  };
-
-  if (!isLoggedIn) {
-    return <LoginForm onLogin={handleLogin} />;
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       {/* Header */}
@@ -35,18 +16,9 @@ const Index = () => {
               </div>
               <div>
                 <h1 className="text-lg font-semibold text-gray-900">Alert Dashboard</h1>
-                <p className="text-sm text-gray-600">Welcome back, {currentUser}!</p>
+                <p className="text-sm text-gray-600">Your daily briefing is ready</p>
               </div>
             </div>
-            
-            <Button 
-              variant="outline" 
-              onClick={handleLogout}
-              className="flex items-center space-x-2"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Logout</span>
-            </Button>
           </div>
         </div>
       </header>
