@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -94,11 +93,11 @@ export default {
 				},
 				'slide-in': {
 					'0%': {
-						transform: 'translateX(-100%)',
+						transform: 'translateY(-50px) scale(0.9)',
 						opacity: '0'
 					},
 					'100%': {
-						transform: 'translateX(0)',
+						transform: 'translateY(0) scale(1)',
 						opacity: '1'
 					}
 				},
@@ -114,19 +113,19 @@ export default {
 				},
 				'pulse-glow': {
 					'0%, 100%': {
-						boxShadow: '0 0 5px rgba(59, 130, 246, 0.5)'
+						boxShadow: '0 0 10px rgba(59, 130, 246, 0.5)'
 					},
 					'50%': {
-						boxShadow: '0 0 20px rgba(59, 130, 246, 0.8)'
+						boxShadow: '0 0 30px rgba(59, 130, 246, 0.9), 0 0 50px rgba(147, 51, 234, 0.5)'
 					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'slide-in': 'slide-in 0.5s ease-out',
+				'slide-in': 'slide-in 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
 				'fade-in': 'fade-in 0.6s ease-out',
-				'pulse-glow': 'pulse-glow 2s infinite'
+				'pulse-glow': 'pulse-glow 3s infinite'
 			}
 		}
 	},
