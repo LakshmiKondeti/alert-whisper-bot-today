@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -118,6 +119,14 @@ export default {
 					'50%': {
 						boxShadow: '0 0 30px rgba(59, 130, 246, 0.9), 0 0 50px rgba(147, 51, 234, 0.5)'
 					}
+				},
+				'movie-scroll': {
+					'0%': {
+						transform: 'translateY(100vh)'
+					},
+					'100%': {
+						transform: 'translateY(-100vh)'
+					}
 				}
 			},
 			animation: {
@@ -125,7 +134,8 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'slide-in': 'slide-in 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
 				'fade-in': 'fade-in 0.6s ease-out',
-				'pulse-glow': 'pulse-glow 3s infinite'
+				'pulse-glow': 'pulse-glow 3s infinite',
+				'movie-scroll': 'movie-scroll 60s linear infinite'
 			}
 		}
 	},

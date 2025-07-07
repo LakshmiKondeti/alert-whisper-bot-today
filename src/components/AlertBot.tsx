@@ -20,6 +20,14 @@ interface DisplayAlert extends Alert {
   isTyping: boolean;
 }
 
+interface MovieAlert {
+  id: string;
+  text: string;
+  priority: 'high' | 'medium' | 'low';
+  displayedText: string;
+  isTyping: boolean;
+}
+
 const mockAlerts: Alert[] = [
   {
     id: '1',
@@ -64,6 +72,7 @@ const AlertBot: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
   const [displayedAlerts, setDisplayedAlerts] = useState<DisplayAlert[]>([]);
+  const [movieAlerts, setMovieAlerts] = useState<MovieAlert[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const speechSynthesisRef = useRef<SpeechSynthesis | null>(null);
 
@@ -169,6 +178,19 @@ const AlertBot: React.FC = () => {
     // Add alert to top of list immediately
     setDisplayedAlerts(prev => [displayAlert, ...prev]);
 
+    // Create movie alert
+    const fullText = `${alert.title}. ${alert.message}`;
+    const movieAlert: MovieAlert = {
+      id: alert.id,
+      text: fullText,
+      priority: alert.priority,
+      displayedText: '',
+      isTyping: true
+    };
+
+    // Add movie alert to list
+    setMovieAlerts(prev => [...prev, movieAlert]);
+
     const typeNextWord = () => {
       if (wordIndex < allWords.length) {
         const word = allWords[wordIndex];
@@ -182,7 +204,7 @@ const AlertBot: React.FC = () => {
           currentMessage += (currentMessage ? ' ' : '') + word;
         }
 
-        // Update the alert in the list
+        // Update the chat alert
         setDisplayedAlerts(prev => 
           prev.map((item, index) => 
             index === 0 
@@ -195,13 +217,31 @@ const AlertBot: React.FC = () => {
           )
         );
 
+        // Update the movie alert
+        const displayedMovieText = allWords.slice(0, wordIndex + 1).join(' ');
+        setMovieAlerts(prev => 
+          prev.map(item => 
+            item.id === alert.id 
+              ? { ...item, displayedText: displayedMovieText }
+              : item
+          )
+        );
+
         wordIndex++;
         setTimeout(typeNextWord, 150); // Adjust speed here
       } else {
-        // Mark typing as complete and speak the full text
+        // Mark typing as complete
         setDisplayedAlerts(prev => 
           prev.map((item, index) => 
             index === 0 
+              ? { ...item, isTyping: false }
+              : item
+          )
+        );
+
+        setMovieAlerts(prev => 
+          prev.map(item => 
+            item.id === alert.id 
               ? { ...item, isTyping: false }
               : item
           )
@@ -254,6 +294,39 @@ const AlertBot: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* Movie Credits Overlay */}
+      <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 pointer-events-none">
+        <div className="w-full max-w-4xl px-8">
+          <div className="space-y-8 animate-movie-scroll">
+            {movieAlerts.map((alert, index) => (
+              <div
+                key={alert.id}
+                className="text-center transform transition-all duration-1000"
+                style={{
+                  transform: `translateY(${(movieAlerts.length - index - 1) * 80}px)`,
+                  opacity: 1 - (index * 0.15)
+                }}
+              >
+                <div 
+                  className={`text-2xl md:text-4xl font-bold tracking-wide leading-relaxed ${
+                    alert.priority === 'high' ? 'text-red-400' : 'text-white'
+                  } drop-shadow-2xl`}
+                  style={{
+                    fontFamily: 'serif',
+                    textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
+                  }}
+                >
+                  {alert.displayedText}
+                  {alert.isTyping && (
+                    <span className="inline-block w-1 h-8 bg-white ml-2 animate-pulse" />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center space-x-3">
